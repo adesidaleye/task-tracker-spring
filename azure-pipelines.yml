@@ -1,0 +1,57 @@
+trigger:
+  - main
+
+variables:
+  azureSubscription: 'azure-rm-connection'
+  acrName: 'acrspringboottasks01'
+  resourceGroup: 'rg-springboot-cicd'
+  containerAppName: 'ca-springboot-tasks'
+  imageRepository: 'spring-boot-app'
+  tag: '$(Build.BuildId)'
+
+stages:
+  - stage: BuildAndPush
+    displayName: 'Build and Push to ACR'
+    jobs:
+      - job: Build
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: Maven@4
+            displayName: 'Maven Build & Test'
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'clean package'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+
+          - task: Docker@2
+            displayName: 'Build and Push Image to ACR'
+            inputs:
+              command: buildAndPush
+              repository: $(imageRepository)
+              dockerfile: '**/Dockerfile'
+              containerRegistry: $(azureSubscription)
+              tags: |
+                $(tag)
+                latest
+
+  - stage: Deploy
+    displayName: 'Deploy to Container Apps'
+    dependsOn: BuildAndPush
+    jobs:
+      - job: Deploy
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Update Container App Image'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az containerapp update \
+                  --name $(containerAppName) \
+                  --resource-group $(resourceGroup) \
+                  --image $(acrName).azurecr.io/$(imageRepository):$(tag)
