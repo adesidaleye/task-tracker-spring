@@ -15,4 +15,6 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     Optional<Task> findByTaskListIdAndId(UUID taskListId, UUID id);
 
+    void deleteByTaskListIdAndId(UUID taskListId, UUID id);
+
 }
