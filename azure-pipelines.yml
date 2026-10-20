@@ -24,6 +24,9 @@ stages:
               goals: 'clean package'
               publishJUnitResults: true
               testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.21'
+              jdkArchitectureOption: 'x64'
 
           - task: Docker@2
             displayName: 'Build and Push Image to ACR'
